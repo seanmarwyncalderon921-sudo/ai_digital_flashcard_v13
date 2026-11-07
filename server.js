@@ -41,14 +41,21 @@ if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && proc
 // --- CLIENT INITIALIZATIONS ---
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-const groqGeneral = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const groqMath = new Groq({ apiKey: process.env.GROQ_API_KEY_MATH || process.env.GROQ_API_KEY });
-const groqFilipino = new Groq({ apiKey: process.env.GROQ_API_KEY_FILIPINO || process.env.GROQ_API_KEY });
+const groqClients = new Map();
 
 function getGroqClient(subjectMode) {
-  if (subjectMode === "math") return groqMath;
-  if (subjectMode === "filipino") return groqFilipino;
-  return groqGeneral;
+  const key = subjectMode === "math"
+    ? process.env.GROQ_API_KEY_MATH || process.env.GROQ_API_KEY
+    : subjectMode === "filipino"
+      ? process.env.GROQ_API_KEY_FILIPINO || process.env.GROQ_API_KEY
+      : process.env.GROQ_API_KEY;
+  if (!key) {
+    throw new Error("AI generation is not configured. Set GROQ_API_KEY in the server environment.");
+  }
+  if (!groqClients.has(key)) {
+    groqClients.set(key, new Groq({ apiKey: key }));
+  }
+  return groqClients.get(key);
 }
 
 // --- SQLITE DATABASE SETUP ---
